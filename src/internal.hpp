@@ -402,7 +402,7 @@ struct Internal {
   // Variable bumping through exponential VSIDS (EVSIDS) as in MiniSAT.
   //
   bool use_scores () const { return opts.score && stable; }
-  void bump_variable_score (int lit);
+  void bump_variable_score (int lit, int flag = 0);
   void bump_variable_score_inc ();
   void rescale_variable_scores ();
 
@@ -626,8 +626,11 @@ struct Internal {
   void learn_empty_clause ();
   void learn_unit_clause (int lit);
 
-  void bump_variable (int lit);
-  void bump_variables ();
+  // void bump_variable (int lit);
+  /*---------------added by cl-----------------*/
+  void bump_variable (int lit, int flag = 0);
+  /*---------------   end   -----------------*/
+  void bump_variables (int flag = 0);
   int recompute_glue (Clause *);
   void bump_clause (Clause *);
   void clear_unit_analyzed_literals ();

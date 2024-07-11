@@ -100,12 +100,33 @@ void Internal::rescale_variable_scores () {
          stats.conflicts);
 }
 
-void Internal::bump_variable_score (int lit) {
+void Internal::bump_variable_score (int lit, int flag = 0) {
   assert (opts.bump);
   int idx = vidx (lit);
   double old_score = score (idx);
   assert (!evsids_limit_hit (old_score));
-  double new_score = old_score + score_inc;
+  /*----------added by cl------------*/
+  double f = 1;
+  switch (flag)
+  {
+  case 1:
+    f = 3.0 / glue;
+    break;
+  case 2:
+    f = 2.0 / glue;
+    break;
+  case 3:
+    f = 1.0 / glue;
+    break;
+  case 4:
+    f = 1.0 / (2 * glue);
+    break;
+  default:
+    break;
+  }
+  double new_score = (1 + f) * old_score + score_inc;
+  // double new_score = old_score + score_inc;
+  /*--------------end----------------*/
   if (evsids_limit_hit (new_score)) {
     LOG ("bumping %g score of %d hits EVSIDS score limit", old_score, idx);
     rescale_variable_scores ();
@@ -122,9 +143,9 @@ void Internal::bump_variable_score (int lit) {
 
 // Important variables recently used in conflict analysis are 'bumped',
 
-void Internal::bump_variable (int lit) {
+void Internal::bump_variable (int lit, int flag = 0) {
   if (use_scores ())
-    bump_variable_score (lit);
+    bump_variable_score (lit, flag);
   else
     bump_queue (lit);
 }
@@ -170,7 +191,7 @@ struct analyze_bumped_smaller {
 
 /*------------------------------------------------------------------------*/
 
-void Internal::bump_variables () {
+void Internal::bump_variables (int flag = 0) {
 
   assert (opts.bump);
 
@@ -190,10 +211,11 @@ void Internal::bump_variables () {
     MSORT (opts.radixsortlim, analyzed.begin (), analyzed.end (),
            analyze_bumped_rank (this), analyze_bumped_smaller (this));
   }
-
+  //将冲突分析得到的冲突子句中的变量进行bump
+  /*------------------modify by cl ------------------*/
   for (const auto &lit : analyzed)
-    bump_variable (lit);
-
+    bump_variable (lit, flag);
+ /*------------------       end    ------------------*/
   if (use_scores ())
     bump_variable_score_inc ();
 
@@ -1095,8 +1117,22 @@ void Internal::analyze () {
 
     // Update decision heuristics.
     //
+  /*--------added by cl-----------*/
+    int flag = 0;
+    if(glue == 2){
+      flag = 1;
+    }
+    else if(glue > 2 && glue <= 7){
+      flag = 2;
+    }
+    else if(glue > 7 && glue <= 10){
+      flag = 3;
+    }
+    else if(glue > 10){
+      flag = 4;
+    }
     if (opts.bump)
-      bump_variables ();
+      bump_variables (flag);
 
     if (external->learner)
       external->export_learned_large_clause (clause);
